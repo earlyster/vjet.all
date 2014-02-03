@@ -373,6 +373,26 @@
 			</properties>
 		</profile>
 
+
+		<!-- Luna -->
+		<profile>
+			<id>platform-luna</id>
+			<activation>
+				<activeByDefault>false</activeByDefault>
+				<property>
+					<name>platform.name</name>
+					<value>luna</value>
+				</property>
+			</activation>
+
+			<properties>
+				<eclipse-site>http://download.eclipse.org/releases/luna/</eclipse-site>
+				<platform-version>[3.10,4.0)</platform-version>
+				<swtbot-site>http://download.eclipse.org/technology/swtbot/releases/latest</swtbot-site>
+			</properties>
+		</profile>
+
+
 		<!-- Kepler -->
 		<profile>
 			<id>platform-kepler</id>
