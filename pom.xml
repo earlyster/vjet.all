@@ -483,6 +483,7 @@
 									<goal>findbugs</goal>
 								</goals>
 								<configuration>
+									<timeout>3600000</timeout>
 									<findbugsXmlOutput>true</findbugsXmlOutput>
 									<failOnError>false</failOnError>
 								</configuration>
