@@ -42,6 +42,7 @@ import org.eclipse.vjet.dsf.jst.IJstProperty;
 import org.eclipse.vjet.dsf.jst.IJstRefType;
 import org.eclipse.vjet.dsf.jst.IJstType;
 import org.eclipse.vjet.dsf.jst.IJstTypeReference;
+import org.eclipse.vjet.dsf.jst.ISynthesized;
 import org.eclipse.vjet.dsf.jst.declaration.JstArg;
 import org.eclipse.vjet.dsf.jst.declaration.JstCache;
 import org.eclipse.vjet.dsf.jst.declaration.JstConstructor;
@@ -1240,7 +1241,7 @@ public class VjoMtdInvocationExprValidator
 	
 	// ML isEnum() method is bug now
     private void checkETypeValuesArgs(final VjoValidationCtx ctx, IExpr valuesExprArgs, JstMethod method) {
-        if (method.getName().toString().equalsIgnoreCase(VALUES)) {
+        if (!(method instanceof ISynthesized) && method.getName().toString().equalsIgnoreCase(VALUES)) {
             if (method.getRtnType().getName().equalsIgnoreCase(VJO_ETYPE1)) {
                 if (valuesExprArgs instanceof ObjLiteral) {
                     List<NV> nVs = ((ObjLiteral) valuesExprArgs).getNVs();
