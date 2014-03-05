@@ -124,7 +124,7 @@ public class VjetTabGroup extends AbstractLaunchConfigurationTabGroup {
 				}
 			});
 
-			controlList.add(combo);
+//			controlList.add(combo);
 
 		}
 	};
