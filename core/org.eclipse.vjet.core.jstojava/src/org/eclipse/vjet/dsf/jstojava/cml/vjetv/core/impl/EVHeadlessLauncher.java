@@ -12,6 +12,7 @@ import java.io.File;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -25,6 +26,7 @@ import org.eclipse.vjet.dsf.jsgen.shared.validation.common.IJstProblem;
 import org.eclipse.vjet.dsf.jsgen.shared.validation.vjo.VjoSemanticProblem;
 import org.eclipse.vjet.dsf.jsgen.shared.validation.vjo.VjoValidationDriver;
 import org.eclipse.vjet.dsf.jsgen.shared.validation.vjo.VjoValidationResult;
+import org.eclipse.vjet.dsf.jsgroup.bootstrap.JsLibBootstrapLoader;
 import org.eclipse.vjet.dsf.jst.IJstType;
 import org.eclipse.vjet.dsf.jst.IScriptProblem;
 import org.eclipse.vjet.dsf.jst.JstProblemId;
@@ -68,6 +70,8 @@ public class EVHeadlessLauncher implements IHeadLessLauncher {
 	VjoParser p = new VjoParser();
 
 	JstParseController c = new JstParseController(p);
+
+	private IHeadlessLauncherConfigure m_config;
 
 	/**
 	 * 
@@ -201,6 +205,7 @@ public class EVHeadlessLauncher implements IHeadLessLauncher {
 	 */
 	private void launchValidate(IHeadlessLauncherConfigure conf,
 			IHeadLessReporter reporter, EVLauncherResult result) {
+		m_config = conf;
 		File validateFile = null;
 		List<String> librariesToLoad = conf.getLibrariesToLoad();
 		LinkedHashSet<File> jsFiles = conf.getValidatedJSFiles();
@@ -241,6 +246,9 @@ public class EVHeadlessLauncher implements IHeadLessLauncher {
 				Collections.EMPTY_LIST, Collections.EMPTY_LIST,
 				Collections.EMPTY_LIST, Collections.EMPTY_LIST, null, conf
 						.getExclusionPatterns()));
+		
+		
+		
 		// TODO read this off a file rather than hard wired
 		IGroup<IJstType> jsnative = mgr.getTypeSpace().getGroup(
 				LibManager.JS_NATIVE_LIB_NAME);
@@ -253,11 +261,50 @@ public class EVHeadlessLauncher implements IHeadLessLauncher {
 				"VjoSelfDescribed");
 		group.addGroupDependency(vjolib);
 
+//		List<String> bootStrapPath = conf.getBootstrapPath();
+//		if (bootStrapPath != null && bootStrapPath.size() != 0) {
+//			String bootstrapJS = VjoParser.getContent(new File(bootStrapPath.get(0)));
+//            JsLibBootstrapLoader.load(bootstrapJS, "group0");
+//		}
+		int index =0;
 		for (String library : librariesToLoad) {
-			mgr.processEvent(new AddGroupEvent(library, library));
-			group.addGroupDependency(mgr.getTypeSpace().getGroup(library));
+			
+			if(library.endsWith(".zip")){
+				mgr.processEvent(new AddGroupEvent(library, library));
+				group.addGroupDependency(mgr.getTypeSpace().getGroup(library));
+			}else{
+				String groupName = "group" + index;
+				List<String> bootStrapPath = conf.getBootstrapPath();
+				if (bootStrapPath != null && bootStrapPath.size() != 0) {
+					String bootstrapJS = VjoParser.getContent(new File(bootStrapPath.get(0)));
+		            JsLibBootstrapLoader.load(bootstrapJS, groupName);
+				}
+				File libPath = new File(library);
+				
+				mgr.processEvent(new AddGroupEvent(groupName, libPath.getParent(),
+						Arrays.asList(libPath.getName()), Collections.EMPTY_LIST,
+						Collections.EMPTY_LIST, Collections.EMPTY_LIST, null, conf
+								.getExclusionPatterns()));
+				IGroup<IJstType> group2 = mgr.getTypeSpace().getGroup(groupName);
+				group2.addGroupDependency(jsnative);
+				group2.addGroupDependency(vjolib);
+				// load in dependent files
+				LinkedHashSet<File> files = new LinkedHashSet<File>();
+				FileOperator.getAllJSFiles(libPath, files,null);
+				
+				List<IJstType> list = processTypes(groupName,libPath, files);
+				for (IJstType iJstType : list) {
+					mgr.processEvent(new AddTypeEvent<IJstType>( new TypeName(groupName, iJstType.getName()),iJstType));
+				}
+				
+				
+				group.addGroupDependency(group2);
+				index++;
+			}
+			
 		}
 
+		
 		// load in zip should we use loader here?
 
 		// we need to load the custom library dependencies
@@ -277,25 +324,8 @@ public class EVHeadlessLauncher implements IHeadLessLauncher {
 		}
 		// parse
 
-		// TODO handle issues with runtime
-		List<IJstType> types = new ArrayList<IJstType>();
-		for (Iterator<File> iterator = jsFiles.iterator(); iterator.hasNext();) {
-			++i;
-			validateFile = iterator.next();
-			types.add(parseFile(validateFile));
 
-		}
-
-		// resolve
-		List<IJstType> resolvedTypes = new ArrayList<IJstType>();
-		for (Iterator<IJstType> iterator = types.iterator(); iterator.hasNext();) {
-			++i;
-			IJstType type = iterator.next();
-			resolvedTypes.add(resolveType(type));
-			
-
-		}
-		types = null;
+		List<IJstType> resolvedTypes = processTypes(ONDEMAND,null,jsFiles);
 
 		// validate file
 		for (Iterator<IJstType> iterator = resolvedTypes.iterator(); iterator.hasNext();) {
@@ -346,6 +376,36 @@ public class EVHeadlessLauncher implements IHeadLessLauncher {
 	// resultDataMap.put(validateFile, e.getMessage());
 	// }
 	// }
+	private List<IJstType> processTypes(String group, File srcDir,
+			LinkedHashSet<File> jsFiles) {
+		List<IJstType> types = new ArrayList<IJstType>();
+		for (Iterator<File> iterator = jsFiles.iterator(); iterator.hasNext();) {
+			File jsFile = iterator.next();
+			if (srcDir != null) {
+				String typeName = jsFile.getAbsolutePath().substring(
+						srcDir.getAbsolutePath().length() + 1,
+						jsFile.getAbsolutePath().length());
+				typeName = typeName.replace("/", ".");
+				typeName = typeName.replace(".js", "");
+				if (m_config.isVerbose()) {
+					System.out.println(typeName);
+				}
+				types.add(parseFile(group, typeName, jsFile));
+			} else {
+				types.add(parseFile(jsFile));
+			}
+
+		}
+
+		// resolve
+		List<IJstType> resolvedTypes = new ArrayList<IJstType>();
+		for (Iterator<IJstType> iterator = types.iterator(); iterator.hasNext();) {
+			IJstType type = iterator.next();
+			resolvedTypes.add(resolveType(type));
+
+		}
+		return resolvedTypes;
+	}
 
 	private IJstType resolveType(IJstType type) {
 		// TODO Auto-generated method stub
@@ -357,6 +417,13 @@ public class EVHeadlessLauncher implements IHeadLessLauncher {
 				VjoParser.getContent(validateFile));
 
 	}
+	
+	private IJstType parseFile(String group, String typeName, File validateFile) {
+		return c.parse(group, typeName,
+				VjoParser.getContent(validateFile));
+
+	}
+
 
 	/*
 	 * (non-Javadoc)

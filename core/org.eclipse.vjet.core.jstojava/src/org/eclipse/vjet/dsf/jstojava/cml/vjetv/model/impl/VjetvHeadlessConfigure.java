@@ -11,6 +11,7 @@ package org.eclipse.vjet.dsf.jstojava.cml.vjetv.model.impl;
 import java.io.File;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.vjet.dsf.jstojava.cml.vjetv.model.IHeadlessLauncherConfigure;
 
@@ -43,6 +44,8 @@ public class VjetvHeadlessConfigure extends IHeadlessLauncherConfigure {
 	private List<String> m_librariesToLoad;
 
 	private List<String> m_exclusionPatterns;
+
+	private List<String> m_bootstrap;
 
     /**
      * @return the isBuild
@@ -152,4 +155,15 @@ public class VjetvHeadlessConfigure extends IHeadlessLauncherConfigure {
 	public void setExclusionPatterns(List<String> exclusionPatterns) {
 		m_exclusionPatterns= exclusionPatterns;
 	}
+
+	public void setBootstrapPath(List<String> bootPath) {
+		m_bootstrap = bootPath;
+	}
+
+	@Override
+	public List<String> getBootstrapPath() {
+		return m_bootstrap;
+	}
+	
+	
 }

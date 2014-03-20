@@ -95,4 +95,6 @@ public abstract class IHeadlessLauncherConfigure {
 	public abstract List<String> getLibrariesToLoad();
 
 	public abstract List<String> getExclusionPatterns();
+
+	public abstract List<String> getBootstrapPath();
 }

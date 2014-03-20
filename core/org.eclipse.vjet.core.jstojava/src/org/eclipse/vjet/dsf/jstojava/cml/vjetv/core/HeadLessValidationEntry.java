@@ -39,6 +39,7 @@ public class HeadLessValidationEntry {
     private static VjetvHeadlessConfigure convert2VjetvConfig(
             IHeadlessParserConfigure parserConf) {
         VjetvHeadlessConfigure vjetvConf = new VjetvHeadlessConfigure();
+        vjetvConf.setBootstrapPath(findBootstrapPaths(parserConf.getBootPath()));
         vjetvConf.setLibrariesToLoad(findLibraries(parserConf.getBuildPath()));
         vjetvConf.setExclusionPatterns(parserConf.getExclusionPatterns());
         vjetvConf.setReportType(parserConf.getReportType());
@@ -54,12 +55,26 @@ public class HeadLessValidationEntry {
     private static List<String> findLibraries(HashSet<File> buildPath) {
 		List<String> libs = new ArrayList<String>();
 		for (File path : buildPath) {
+			if(path.isDirectory()){
+				libs.add(path.getAbsolutePath());
+			}
 			if(path.getAbsolutePath().endsWith(".zip")){
 				libs.add(path.getAbsolutePath());
 			}
 		}
 
 		return libs;
+	}
+    
+    private static List<String> findBootstrapPaths(HashSet<File> bootstrapPath) {
+		List<String> paths = new ArrayList<String>();
+		for (File path : bootstrapPath) {
+			if(path.getAbsolutePath().endsWith(".js")){
+				paths.add(path.getAbsolutePath());
+			}
+		}
+
+		return paths;
 	}
 
 	/**
@@ -95,7 +110,7 @@ public class HeadLessValidationEntry {
         if (result.getErrorNumber() > 0 && parserConf.isFailBuild()) {
             throw new RuntimeException("There are  "
                     + result.getErrorNumber()
-                    + " validation errors, please fix it");
+                    + " validation errors");
         }
         return result; 
     }
